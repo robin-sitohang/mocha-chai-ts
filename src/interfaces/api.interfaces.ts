@@ -38,8 +38,8 @@ export interface ErrorResponse {
 }
 
 export interface UpdateUserRequest {
-    name: string;
-    job: string;
+    name?: string;
+    job?: string;
 }
 
 export interface UpdateUserResponse {

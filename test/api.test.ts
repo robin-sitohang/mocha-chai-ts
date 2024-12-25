@@ -27,19 +27,19 @@ describe('Reqres API Tests', () => {
             expect(response.data.data).to.have.property('avatar');
 
             // Check specific values for user data
-            expect(response.data.data.id).to.equal(2);
-            expect(response.data.data.email).to.equal('janet.weaver@reqres.in');
-            expect(response.data.data.first_name).to.equal('Janet');
-            expect(response.data.data.last_name).to.equal('Weaver');
-            expect(response.data.data.avatar).to.equal('https://reqres.in/img/faces/2-image.jpg');
+            // expect(response.data.data.id).to.equal(2);
+            // expect(response.data.data.email).to.equal('janet.weaver@reqres.in');
+            // expect(response.data.data.first_name).to.equal('Janet');
+            // expect(response.data.data.last_name).to.equal('Weaver');
+            // expect(response.data.data.avatar).to.equal('https://reqres.in/img/faces/2-image.jpg');
 
             // Check support object structure
             expect(response.data.support).to.have.property('url');
             expect(response.data.support).to.have.property('text');
 
             // Check specific values for support object
-            expect(response.data.support.url).to.equal('https://contentcaddy.io?utm_source=reqres&utm_medium=json&utm_campaign=referral');
-            expect(response.data.support.text).to.equal('Tired of writing endless social media content? Let Content Caddy generate it for you.');
+            // expect(response.data.support.url).to.equal('https://contentcaddy.io?utm_source=reqres&utm_medium=json&utm_campaign=referral');
+            // expect(response.data.support.text).to.equal('Tired of writing endless social media content? Let Content Caddy generate it for you.');
 
             // Alternative way to check the entire response at once
             expect(response.data).to.deep.equal({
@@ -100,6 +100,23 @@ describe('Reqres API Tests', () => {
                 expect(axiosError.response?.data.error).to.equal('Missing password');
             }
         });
+
+        it('should fail registration without email', async () => {
+            const userData: RegisterRequest = {
+                email: "",
+                password: "pistol"
+            };
+
+            try {
+                await axios.post(`${BASE_URL}/register`, userData);
+                throw new Error('Expected 400 error but got success');
+            } catch (error) {
+                const axiosError = error as any;
+                expect(axiosError.response?.status).to.equal(400);
+                expect(axiosError.response?.data).to.have.property('error');
+                expect(axiosError.response?.data.error).to.equal('Missing email or username');
+            }
+        });
     });
 
     describe('POST Login', () => {
@@ -116,10 +133,44 @@ describe('Reqres API Tests', () => {
             expect(response.data.token).to.equal('QpwL5tke4Pnpja7X4');
         });
 
-        it('should fail login with invalid credentials', async () => {
-            const loginData: LoginRequest = {
-                email: "peter@klaven",
+        it('should fail login without password', async () => {
+            const userData: RegisterRequest = {
+                email: "sydney@fife",
                 password: ""
+            };
+
+            try {
+                await axios.post(`${BASE_URL}/login`, userData);
+                throw new Error('Expected 400 error but got success');
+            } catch (error) {
+                const axiosError = error as any;
+                expect(axiosError.response?.status).to.equal(400);
+                expect(axiosError.response?.data).to.have.property('error');
+                expect(axiosError.response?.data.error).to.equal('Missing password');
+            }
+        });
+
+        it('should fail login without email', async () => {
+            const userData: RegisterRequest = {
+                email: "",
+                password: "pistol"
+            };
+
+            try {
+                await axios.post(`${BASE_URL}/login`, userData);
+                throw new Error('Expected 400 error but got success');
+            } catch (error) {
+                const axiosError = error as any;
+                expect(axiosError.response?.status).to.equal(400);
+                expect(axiosError.response?.data).to.have.property('error');
+                expect(axiosError.response?.data.error).to.equal('Missing email or username');
+            }
+        });
+
+        it('should fail login with invalid credentials - user not found', async () => {
+            const loginData: LoginRequest = {
+                email: "user-not-found@klaven",
+                password: "pistol"
             };
 
             try {
@@ -129,13 +180,13 @@ describe('Reqres API Tests', () => {
                 const axiosError = error as any;
                 expect(axiosError.response?.status).to.equal(400);
                 expect(axiosError.response?.data).to.have.property('error');
-                expect(axiosError.response?.data.error).to.equal('Missing password');
+                expect(axiosError.response?.data.error).to.equal('user not found');
             }
         });
     });
 
     describe('PATCH Update User', () => {
-        it('should update user successfully', async () => {
+        it('should update user successfully - both name and job', async () => {
             const updateData: UpdateUserRequest = {
                 name: "morpheus",
                 job: "zion resident"
@@ -146,6 +197,42 @@ describe('Reqres API Tests', () => {
             expect(response.status).to.equal(200);
             expect(response.data).to.have.property('name', updateData.name);
             expect(response.data).to.have.property('job', updateData.job);
+            expect(response.data).to.have.property('updatedAt');
+
+            expect(response.data.name).to.equal(updateData.name);
+            expect(response.data.job).to.equal(updateData.job);
+        });
+
+        it('should update user successfully - only name', async () => {
+            const updateData: UpdateUserRequest = {
+                name: "neo",
+            };
+
+            const response = await axios.patch<UpdateUserResponse>(`${BASE_URL}/users/2`, updateData);
+            expect(response.status).to.equal(200);
+            expect(response.data).to.have.property('updatedAt');
+            expect(response.data).to.have.property('name', updateData.name);
+            expect(response.data.name).to.equal(updateData.name);
+        });
+
+        it('should update user successfully - only job', async () => {
+            const updateData: UpdateUserRequest = {
+                job: "the chosen one",
+            };
+
+            const response = await axios.patch<UpdateUserResponse>(`${BASE_URL}/users/2`, updateData);
+            expect(response.status).to.equal(200);
+            expect(response.data).to.have.property('updatedAt');
+            expect(response.data).to.have.property('job', updateData.job);
+            expect(response.data.job).to.equal(updateData.job);
+        });
+
+        it('should update user successfully - empty body', async () => {
+            const updateData: UpdateUserRequest = {
+            };
+
+            const response = await axios.patch<UpdateUserResponse>(`${BASE_URL}/users/2`, updateData);
+            expect(response.status).to.equal(200);
             expect(response.data).to.have.property('updatedAt');
         });
     });
